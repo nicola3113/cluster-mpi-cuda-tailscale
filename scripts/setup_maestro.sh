@@ -52,6 +52,9 @@ btl_vader_single_copy_mechanism = none
 plm_rsh_no_tree_spawn = 1
 EOF
 grep -q 'cuda/bin' /home/mpiuser/.bashrc || echo 'export PATH=/usr/local/cuda/bin:$PATH' >> /home/mpiuser/.bashrc
+# hwloc (usado por mpirun) intenta abrir la pantalla X11 de WSLg y con red mirrored se cuelga: desactivar su plugin GL
+grep -q HWLOC_COMPONENTS /etc/environment || echo 'HWLOC_COMPONENTS=-gl' >> /etc/environment
+grep -q HWLOC_COMPONENTS /home/mpiuser/.bashrc || echo 'export HWLOC_COMPONENTS=-gl' >> /home/mpiuser/.bashrc
 chown -R mpiuser:mpiuser /home/mpiuser/.ssh /home/mpiuser/.openmpi; chmod 600 /home/mpiuser/.ssh/config
 
 echo "[5/7] SSH + systemd + hostname master"
@@ -83,7 +86,7 @@ mkdir -p "$W"; cd "$W"
 cp "$REPO"/codigo/* "$REPO"/scripts/cluster.sh .
 sed -i 's/\r$//' *.sh *.py
 chmod +x *.sh
-export PATH=/usr/local/cuda/bin:$PATH
+export PATH=/usr/local/cuda/bin:$PATH HWLOC_COMPONENTS=-gl
 GEN="-gencode arch=compute_61,code=sm_61 -gencode arch=compute_75,code=sm_75 \
      -gencode arch=compute_86,code=sm_86 -gencode arch=compute_89,code=sm_89 \
      -gencode arch=compute_89,code=compute_89"

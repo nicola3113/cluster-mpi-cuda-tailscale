@@ -38,6 +38,8 @@ btl_vader_single_copy_mechanism = none
 plm_rsh_no_tree_spawn = 1
 EOF
 chown mpiuser:mpiuser /home/mpiuser/.openmpi/mca-params.conf
+# hwloc (usado por orted) intenta abrir la pantalla X11 de WSLg y con red mirrored se cuelga: desactivar su plugin GL
+grep -q HWLOC_COMPONENTS /etc/environment || echo 'HWLOC_COMPONENTS=-gl' >> /etc/environment
 
 echo "[5/6] SSH (solo con clave, puerto 22)"
 cat > /etc/ssh/sshd_config.d/10-cluster.conf <<EOF

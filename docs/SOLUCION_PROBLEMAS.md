@@ -21,6 +21,7 @@ Puedes volver a ejecutar `unirse_cluster.ps1` todas las veces que necesites; no 
 | `./cluster.sh descubrir` no encuentra nada | El compañero tiene que aparecer en `tailscale status` como `nodo-…` y en línea. Si no, agrégalo a mano con `./cluster.sh agregar juan 100.x.y.z` |
 | `estado` → `FALLA: Connection timed out` | Su Ubuntu está cerrado, su firewall no se abrió (que vuelva a ejecutar el script) o Tailscale está desconectado. Prueba desde Windows con `tailscale ping nodo-juan` |
 | `estado` → `Permission denied (publickey)` | El nodo no tiene tu clave: debe volver a ejecutar el script con la `-ClaveMaestro` correcta (la de `scripts/clave_maestro.pub`) |
+| `mpirun -np 1 hostname` se cuelga incluso en una sola PC | hwloc intenta conectarse a la pantalla X11 de WSLg (puerto 6001) y con red mirrored nunca responde. Debe existir `HWLOC_COMPONENTS=-gl` en `/etc/environment` (y en `~/.bashrc` del maestro); los scripts de setup ya lo agregan |
 | `mpirun` se queda colgado al iniciar | Puertos 10000-10400 bloqueados en algún equipo, o mezcla de interfaces. Revisa que `~/.openmpi/mca-params.conf` tenga `100.64.0.0/10` en el maestro y en los nodos |
 | `ERROR: no se pudo abrir 'matrices/E.bin'` en un rank | Falta ejecutar `./cluster.sh sync` |
 | `no kernel image is available for execution on the device` | GPU muy nueva o muy antigua: en el maestro, agrega su `-gencode arch=compute_XX,code=sm_XX` en `setup_maestro.sh` y recompila |
