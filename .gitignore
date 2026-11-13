@@ -1,0 +1,10 @@
+matrices/
+matrices_validate/
+*.o
+llm_mpi_cuda_gpt2small
+validate_cpu_mpi_gpt2small
+benchmark_*.csv
+benchmark_*.png
+hosts.txt
+nodos.txt
+*tskey*
