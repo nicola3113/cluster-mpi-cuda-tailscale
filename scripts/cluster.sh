@@ -12,6 +12,7 @@
 #   ./cluster.sh benchmark          run_benchmark.sh + parse_benchmark.py con todos los N validos
 set -uo pipefail
 cd "$(dirname "$0")"
+export HWLOC_COMPONENTS=-gl   # evita que mpirun se cuelgue buscando la pantalla X11 de WSLg
 
 TS="/mnt/c/Program Files/Tailscale/tailscale.exe"
 NODOS=nodos.txt
@@ -19,11 +20,13 @@ BIN=llm_mpi_cuda_gpt2small
 D_FF=3072
 touch "$NODOS"
 
-ssh_ok() { ssh -o BatchMode=yes -o ConnectTimeout=6 "mpiuser@$1" true 2>/dev/null; }
+# ssh -n / </dev/null: sin eso ssh se come el resto de nodos.txt dentro de los "while read"
+ssh_ok() { ssh -n -o BatchMode=yes -o ConnectTimeout=6 "mpiuser@$1" true 2>/dev/null; }
 
 case "${1:-ayuda}" in
 descubrir)
-  "$TS" status --json | python3 -c '
+  # tailscale.exe falla con "Invalid argument" si se lanza desde una carpeta Linux: usar /mnt/c
+  (cd /mnt/c && "$TS" status --json) | python3 -c '
 import json,sys
 d=json.load(sys.stdin)
 for p in (d.get("Peer") or {}).values():
@@ -44,8 +47,8 @@ estado)
     "$(nvidia-smi --query-gpu=name,compute_cap --format=csv,noheader)"
   while read -r n ip; do
     [ -z "$n" ] && continue
-    if out=$(ssh -o BatchMode=yes -o ConnectTimeout=6 "mpiuser@$ip" \
-        'echo "$(hostname) | $(nvidia-smi --query-gpu=name,compute_cap --format=csv,noheader 2>&1) | $(mpirun --version | head -1)"' 2>&1); then
+    if out=$(ssh -n -o BatchMode=yes -o ConnectTimeout=6 "mpiuser@$ip" \
+        'echo "$(hostname) | $(/usr/lib/wsl/lib/nvidia-smi --query-gpu=name,compute_cap --format=csv,noheader 2>&1) | $(mpirun --version | head -1)"' 2>&1); then
       printf "%-22s %-16s OK  %s\n" "$n" "$ip" "$out"
     else
       printf "%-22s %-16s FALLA: %s\n" "$n" "$ip" "$(echo "$out" | tail -1)"
@@ -55,7 +58,7 @@ sync)
   while read -r n ip; do
     [ -z "$n" ] && continue
     echo "== $n ($ip)"
-    rsync -az --exclude Wvocab.bin "$BIN" validate_cpu_mpi_gpt2small matrices "mpiuser@$ip:llm_cluster/" \
+    rsync -az --exclude Wvocab.bin "$BIN" validate_cpu_mpi_gpt2small matrices "mpiuser@$ip:llm_cluster/" </dev/null \
       && echo "   ok" || echo "   FALLA (revisar ./cluster.sh estado)"
   done < "$NODOS" ;;
 hostfile)
